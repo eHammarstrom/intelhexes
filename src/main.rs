@@ -63,26 +63,6 @@ impl RecordType {
     }
 }
 
-#[derive(Debug)]
-struct DataRecord<'s> {
-    len: u8,
-    addr: u16,
-    data: &'s [u8],
-}
-
-#[derive(Debug)]
-struct EndOfFileRecord {}
-
-#[derive(Debug)]
-struct ExtendedLinearAddrRecord {
-    addr: u32,
-}
-
-#[derive(Debug)]
-struct StartLinearAddrRecord {
-    addr: u32,
-}
-
 #[inline]
 fn hex_to_u8(bytes: &[u8]) -> u8 {
     let s = unsafe { std::str::from_utf8_unchecked(bytes) };
