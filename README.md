@@ -16,10 +16,10 @@ Measured using hyperfine on a laptop with 16GB RAM and an i7-9750H,
 
 `hyperfine -w10 -m100 PROGRAM`
 
-|                   | intelhexes                                       | python-intelhex                                    |
-| ----------------- | ------------------------------------------------ | -------------------------------------------------- |
-| Time (mean ± σ)   | `3.3 ms ± 1.1 ms [User: 2.7 ms, System: 0.7 ms]` | `40.1 ms ± 0.6 ms [User: 37.0 ms, System: 3.2 ms]` |
-| Range (min … max) | `2.3 ms … 8.7 ms 962 runs`                       | `39.0 ms … 42.0 ms 100 runs`                       |
+|                   | intelhexes                                          | python-intelhex                                        |
+| ----------------- | ------------------------------------------------    | --------------------------------------------------     |
+| Time (mean ± σ)   | `72.9 ms ± 1.9 ms [User: 59.4 ms, System: 13.5 ms]` | `888.5 ms ± 29.8 ms [User: 861.4 ms, System: 26.8 ms]` |
+| Range (min … max) | `71.1 ms … 77.2 ms 38 runs`                         | `841.5 ms … 925.6 ms 10 runs`                          |
 
 ### Output
 

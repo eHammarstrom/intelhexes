@@ -19,14 +19,20 @@ pub struct RingBuffer<const SIZE: usize> {
     bytes_avail: usize,
 }
 
-impl<const SIZE: usize> RingBuffer<SIZE> {
-    pub fn new() -> RingBuffer<SIZE> {
+impl<const SIZE: usize> Default for RingBuffer<SIZE> {
+    fn default() -> RingBuffer<SIZE> {
         RingBuffer {
             buf: [0u8; SIZE],
             peek_buffer: [0u8; SIZE],
             read_idx: 0,
             bytes_avail: 0,
         }
+    }
+}
+
+impl<const SIZE: usize> RingBuffer<SIZE> {
+    pub fn new() -> RingBuffer<SIZE> {
+        RingBuffer::default()
     }
 
     pub fn capacity(&self) -> usize {
@@ -115,7 +121,7 @@ mod tests {
     #[test]
     fn it_works() {
         let mut buf =
-            std::io::Cursor::new(include_bytes!("../sniffer_nrf52840dk_nrf52840_7cc811f.hex"));
+            std::io::Cursor::new(include_bytes!("../hex-examples/sniffer_nrf52840dk_nrf52840_7cc811f.hex"));
         let mut rb: RingBuffer<128> = RingBuffer::new();
 
         assert_eq!(rb.bytes_avail, 0);
@@ -131,7 +137,7 @@ mod tests {
         rb.consume(ans.len())
             .expect("to be able to consume the peeked bytes");
 
-        assert!(!rb.empty());
+        assert!(!rb.is_empty());
         assert_eq!(rb.len(), 118);
 
         let bytes_read = rb.fill(&mut buf).expect("to be able to read the cursor");

@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use std::fs::File;
 use std::io::Read;
 use std::io::{Error, ErrorKind, Result};
@@ -119,7 +121,7 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
     const BUF_SZ: usize = 4096;
 
     let mut rb: ringbuffer::RingBuffer<BUF_SZ> = ringbuffer::RingBuffer::new();
-    let mut addr_offset = 0;
+    let mut addr_offset: u32 = 0;
 
     rb.fill(&mut reader)?;
 
@@ -189,8 +191,8 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
                 }
 
                 println!(
-                    "{:#08x}  {:<48} |{:<16}|",
-                    addr_offset + addr,
+                    "{:#010x}  {:<48} |{:<16}|",
+                    addr_offset + addr as u32,
                     unsafe { std::str::from_utf8_unchecked(&hex_buf[..hex_len]) },
                     unsafe { std::str::from_utf8_unchecked(&str_buf[..str_len]) }
                 );
@@ -208,7 +210,7 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
                 addr_offset = hex_to_u16(
                     &buf[EXT_LINEAR_ADDR_UPPER_ADDR
                         ..EXT_LINEAR_ADDR_UPPER_ADDR + EXT_LINEAR_ADDR_UPPER_ADDR_SZ],
-                );
+                ) as u32;
 
                 rb.consume(sz).unwrap();
             }
@@ -224,7 +226,7 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
                     &buf[EXT_SEGMENT_ADDR_UPPER_ADDR
                         ..EXT_SEGMENT_ADDR_UPPER_ADDR + EXT_SEGMENT_ADDR_UPPER_ADDR_SZ],
                 );
-                addr_offset = segment_addr * 10;
+                addr_offset = segment_addr as u32 * 10;
 
                 rb.consume(sz).unwrap();
             }
@@ -286,7 +288,14 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn it_works() {
-        include_bytes!("../sniffer_nrf52840dk_nrf52840_7cc811f.hex");
+    fn it_works_nrf() {
+        let hex = include_bytes!("../hex-examples/sniffer_nrf52840dk_nrf52840_7cc811f.hex");
+        assert!(print_human(std::io::Cursor::new(hex)).is_ok());
+    }
+
+    #[test]
+    fn it_works_nina() {
+        let hex = include_bytes!("../hex-examples/NINA-W15X-SW-4.0.0-006.hex");
+        assert!(print_human(std::io::Cursor::new(hex)).is_ok());
     }
 }
