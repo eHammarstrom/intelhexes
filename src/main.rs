@@ -5,6 +5,8 @@ use std::io::Seek;
 use std::io::BufRead;
 use std::cmp;
 
+pub mod ringbuffer;
+
 #[derive(Debug)]
 enum RecordType {
     Data = 0x00,
