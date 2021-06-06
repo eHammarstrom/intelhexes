@@ -1,11 +1,6 @@
-use std::fs::File;
-use std::io::Read;
-use std::io::Cursor;
-use std::io::Seek;
-use std::io::BufRead;
-use std::io::{Result, ErrorKind};
 use std::cmp;
-use std::mem;
+use std::io::Read;
+use std::io::Result;
 
 #[derive(Debug)]
 pub enum RBErrorKind {
@@ -42,7 +37,7 @@ impl<const SIZE: usize> RingBuffer<SIZE> {
         self.bytes_avail
     }
 
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.bytes_avail == 0
     }
 
@@ -80,7 +75,9 @@ impl<const SIZE: usize> RingBuffer<SIZE> {
         }
     }
 
-    pub fn buf(&self) -> &[u8] { &self.buf }
+    pub fn buf(&self) -> &[u8] {
+        &self.buf
+    }
 
     /// Copyless peek may reach end of buffer, the "wrap"
     pub fn peek(&self, len: usize) -> RBResult<&[u8]> {
@@ -102,8 +99,10 @@ impl<const SIZE: usize> RingBuffer<SIZE> {
         let end_bytes = cmp::min(SIZE - self.read_idx, len);
         let start_bytes = self.bytes_avail - end_bytes;
 
-        self.peek_buffer[..end_bytes].copy_from_slice(&self.buf[self.read_idx..self.read_idx+end_bytes]);
-        self.peek_buffer[end_bytes..end_bytes+start_bytes].copy_from_slice(&self.buf[..start_bytes]);
+        self.peek_buffer[..end_bytes]
+            .copy_from_slice(&self.buf[self.read_idx..self.read_idx + end_bytes]);
+        self.peek_buffer[end_bytes..end_bytes + start_bytes]
+            .copy_from_slice(&self.buf[..start_bytes]);
 
         Ok(&self.peek_buffer[..len])
     }
@@ -115,7 +114,8 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut buf = std::io::Cursor::new(include_bytes!("../sniffer_nrf52840dk_nrf52840_7cc811f.hex"));
+        let mut buf =
+            std::io::Cursor::new(include_bytes!("../sniffer_nrf52840dk_nrf52840_7cc811f.hex"));
         let mut rb: RingBuffer<128> = RingBuffer::new();
 
         assert_eq!(rb.bytes_avail, 0);
@@ -128,7 +128,8 @@ mod tests {
         assert_eq!(peek, &ans);
         assert_eq!(rb.len(), 128);
 
-        rb.consume(ans.len()).expect("to be able to consume the peeked bytes");
+        rb.consume(ans.len())
+            .expect("to be able to consume the peeked bytes");
 
         assert!(!rb.empty());
         assert_eq!(rb.len(), 118);
@@ -154,14 +155,14 @@ mod tests {
         let peek = rb.peek(ans.len()).expect("to be able to peek after a fill");
         assert_eq!(peek, &ans);
 
-
         // We should have the same start of the internal buffer as previously
         let ans = [48u8, 48, 48, 55, 51, 13, 10, 58, 49, 48];
         assert_eq!(&rb.buf[..ans.len()], &ans);
 
         // Currently we have consumed 10 bytes, so read_idx = 10, let's put it
         // at 118 so we have 10 bytes in the rb right-of read_idx
-        rb.consume(108).expect("to be able to consume 108 bytes after 10 bytes");
+        rb.consume(108)
+            .expect("to be able to consume 108 bytes after 10 bytes");
         assert_eq!(rb.read_idx, 118);
 
         let last_10_bytes = &rb.buf[118..];
@@ -172,7 +173,9 @@ mod tests {
         linear_bytes.extend_from_slice(last_10_bytes);
         linear_bytes.extend_from_slice(first_10_bytes);
         // We need to be able to provide a peek wrapping the buffer
-        let peek = rb.wrapping_peek(linear_bytes.len()).expect("to be able to peek across buffer wrap");
+        let peek = rb
+            .wrapping_peek(linear_bytes.len())
+            .expect("to be able to peek across buffer wrap");
         assert_eq!(peek, &linear_bytes[..]);
     }
 }

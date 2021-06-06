@@ -1,16 +1,12 @@
 use std::fs::File;
 use std::io::Read;
-use std::io::Cursor;
-use std::io::Seek;
-use std::io::BufRead;
 use std::io::{Error, ErrorKind, Result};
-use std::cmp;
 
 pub mod ringbuffer;
 
 const COLON: usize = 1;
 
-const HDR_LEN: usize = COLON + 0;
+const HDR_LEN: usize = COLON;
 const HDR_LEN_SZ: usize = 2;
 const HDR_ADDR: usize = HDR_LEN + HDR_LEN_SZ;
 const HDR_ADDR_SZ: usize = 4;
@@ -47,7 +43,7 @@ impl From<u8> for RecordType {
             0x03 => RecordType::StartSegmentAddr,
             0x04 => RecordType::ExtendedLinearAddr,
             0x05 => RecordType::StartLinearAddr,
-            _    => RecordType::Unknown,
+            _ => RecordType::Unknown,
         }
     }
 }
@@ -73,7 +69,7 @@ struct DataRecord<'s> {
 }
 
 #[derive(Debug)]
-struct EndOfFileRecord { }
+struct EndOfFileRecord {}
 
 #[derive(Debug)]
 struct ExtendedLinearAddrRecord {
@@ -98,15 +94,22 @@ fn hex_to_u16(bytes: &[u8]) -> u16 {
 }
 
 #[inline]
-fn maybe_fetch<R: Read, const SZ: usize>(rb: &mut ringbuffer::RingBuffer<SZ>, reader: &mut R, mut need: usize) -> Result<()> {
+fn maybe_fetch<R: Read, const SZ: usize>(
+    rb: &mut ringbuffer::RingBuffer<SZ>,
+    reader: &mut R,
+    mut need: usize,
+) -> Result<()> {
     if rb.len() > need {
         return Ok(());
     }
 
-    need = need - rb.len();
+    need -= rb.len();
 
     if rb.fill(reader)? < need {
-        Err(Error::new(ErrorKind::Other, "Expected more bytes to be available"))
+        Err(Error::new(
+            ErrorKind::Other,
+            "Expected more bytes to be available",
+        ))
     } else {
         Ok(())
     }
@@ -127,28 +130,33 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
         }
 
         if rb.len() < RECORD_HEADER_SZ {
-            break
+            break;
         }
 
         let buf = rb.wrapping_peek(RECORD_HEADER_SZ).unwrap();
 
-        let record_type = RecordType::from(hex_to_u8(&buf[HDR_TYPE..HDR_TYPE+HDR_TYPE_SZ]));
+        let record_type = RecordType::from(hex_to_u8(&buf[HDR_TYPE..HDR_TYPE + HDR_TYPE_SZ]));
 
         match record_type {
             RecordType::Unknown => {
-                eprintln!("Found unknown record type: {:#02x}", hex_to_u8(&buf[HDR_TYPE..HDR_TYPE+HDR_TYPE_SZ]));
-                eprintln!("Surrounding bytes: {:?}", unsafe { std::str::from_utf8_unchecked(&buf[0..RECORD_HEADER_SZ]) });
+                eprintln!(
+                    "Found unknown record type: {:#02x}",
+                    hex_to_u8(&buf[HDR_TYPE..HDR_TYPE + HDR_TYPE_SZ])
+                );
+                eprintln!("Surrounding bytes: {:?}", unsafe {
+                    std::str::from_utf8_unchecked(&buf[0..RECORD_HEADER_SZ])
+                });
                 return Err(Error::new(ErrorKind::Other, "Unknown record type"));
-            },
+            }
             RecordType::Data => {
-                let data_len = 2 * hex_to_u8(&buf[HDR_LEN..HDR_LEN+HDR_LEN_SZ]) as usize;
+                let data_len = 2 * hex_to_u8(&buf[HDR_LEN..HDR_LEN + HDR_LEN_SZ]) as usize;
                 let sz = CHECKSUM_SZ + RECORD_HEADER_SZ + data_len;
 
                 maybe_fetch(&mut rb, &mut reader, sz)?;
 
                 let buf = rb.wrapping_peek(sz).unwrap();
 
-                let addr = hex_to_u16(&buf[HDR_ADDR..HDR_ADDR+HDR_ADDR_SZ]);
+                let addr = hex_to_u16(&buf[HDR_ADDR..HDR_ADDR + HDR_ADDR_SZ]);
 
                 let mut hex_buf = [0u8; 64];
                 let mut hex_len = 0;
@@ -160,11 +168,11 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
 
                     if abs_index < 32 {
                         if abs_index % 16 == 0 {
-                            hex_buf[hex_len] = ' ' as u8;
+                            hex_buf[hex_len] = b' ';
                             hex_len += 1;
                         }
                         if abs_index % 2 == 0 {
-                            hex_buf[hex_len] = ' ' as u8;
+                            hex_buf[hex_len] = b' ';
                             hex_len += 1;
                         }
                     }
@@ -180,13 +188,15 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
                     str_len += 1;
                 }
 
-                println!("{:#08x}  {:<48} |{:<16}|",
+                println!(
+                    "{:#08x}  {:<48} |{:<16}|",
                     addr_offset + addr,
                     unsafe { std::str::from_utf8_unchecked(&hex_buf[..hex_len]) },
-                    unsafe { std::str::from_utf8_unchecked(&str_buf[..str_len]) });
+                    unsafe { std::str::from_utf8_unchecked(&str_buf[..str_len]) }
+                );
 
                 rb.consume(sz).unwrap();
-            },
+            }
             // This record affects the following data addresses
             RecordType::ExtendedLinearAddr => {
                 let sz = RecordType::ExtendedLinearAddr.fixed_size();
@@ -195,10 +205,13 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
 
                 let buf = rb.wrapping_peek(sz).unwrap();
 
-                addr_offset = hex_to_u16(&buf[EXT_LINEAR_ADDR_UPPER_ADDR..EXT_LINEAR_ADDR_UPPER_ADDR+EXT_LINEAR_ADDR_UPPER_ADDR_SZ]);
+                addr_offset = hex_to_u16(
+                    &buf[EXT_LINEAR_ADDR_UPPER_ADDR
+                        ..EXT_LINEAR_ADDR_UPPER_ADDR + EXT_LINEAR_ADDR_UPPER_ADDR_SZ],
+                );
 
                 rb.consume(sz).unwrap();
-            },
+            }
             // This record affects the following data addresses
             RecordType::ExtendedSegmentAddr => {
                 let sz = RecordType::ExtendedSegmentAddr.fixed_size();
@@ -207,19 +220,22 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
 
                 let buf = rb.wrapping_peek(sz).unwrap();
 
-                let segment_addr = hex_to_u16(&buf[EXT_SEGMENT_ADDR_UPPER_ADDR..EXT_SEGMENT_ADDR_UPPER_ADDR+EXT_SEGMENT_ADDR_UPPER_ADDR_SZ]);
+                let segment_addr = hex_to_u16(
+                    &buf[EXT_SEGMENT_ADDR_UPPER_ADDR
+                        ..EXT_SEGMENT_ADDR_UPPER_ADDR + EXT_SEGMENT_ADDR_UPPER_ADDR_SZ],
+                );
                 addr_offset = segment_addr * 10;
 
                 rb.consume(sz).unwrap();
-            },
+            }
             // Skip records that do not affect output
-            rt@(RecordType::StartLinearAddr | RecordType::StartSegmentAddr) => {
+            rt @ (RecordType::StartLinearAddr | RecordType::StartSegmentAddr) => {
                 let sz = rt.fixed_size();
 
                 maybe_fetch(&mut rb, &mut reader, sz)?;
 
                 rb.consume(sz).unwrap();
-            },
+            }
             RecordType::EndOfFile => {
                 break;
             }
@@ -230,10 +246,10 @@ fn print_human<R: Read>(mut reader: R) -> Result<()> {
             match rb.peek(1).unwrap()[0] as char {
                 '\r' => {
                     rb.consume(1).unwrap();
-                },
+                }
                 '\n' => {
                     rb.consume(1).unwrap();
-                },
+                }
                 _ => break,
             };
 
