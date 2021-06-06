@@ -9,4 +9,12 @@ authors = ["Emil Hammarstroem <emil.a.hammarstrom@gmail.com>"]
 [profile.release]
 debug = true
 
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "print_human"
+harness = false
+
 [dependencies]
+

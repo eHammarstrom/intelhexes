@@ -120,8 +120,9 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut buf =
-            std::io::Cursor::new(include_bytes!("../hex-examples/sniffer_nrf52840dk_nrf52840_7cc811f.hex"));
+        let mut buf = std::io::Cursor::new(include_bytes!(
+            "../hex-examples/sniffer_nrf52840dk_nrf52840_7cc811f.hex"
+        ));
         let mut rb: RingBuffer<128> = RingBuffer::new();
 
         assert_eq!(rb.bytes_avail, 0);
