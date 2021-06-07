@@ -12,14 +12,30 @@ https://www.keil.com/support/docs/1584/
 
 ### Performance
 
-Measured using hyperfine on a laptop with 16GB RAM and an i7-9750H,
+Measured on a laptop with 16GB RAM and an i7-9750H,
 
-`hyperfine -w10 -m100 PROGRAM`
+#### Hyperfine benchmarks
 
-|                   | intelhexes                                          | python-intelhex                                        |
-| ----------------- | ------------------------------------------------    | --------------------------------------------------     |
-| Time (mean ± σ)   | `72.9 ms ± 1.9 ms [User: 59.4 ms, System: 13.5 ms]` | `888.5 ms ± 29.8 ms [User: 861.4 ms, System: 26.8 ms]` |
-| Range (min … max) | `71.1 ms … 77.2 ms 38 runs`                         | `841.5 ms … 925.6 ms 10 runs`                          |
+`hyperfine -w10 -m100 "PROGRAM hex-examples/NINA-W15X-SW-4.0.0-006.hex > /dev/null"`
+
+| PROGRAM           | intelhexes                                         | python-intelhex                                        |
+| ----------------- | ------------------------------------------------   | --------------------------------------------------     |
+| Time (mean ± σ)   | `32.5 ms ± 0.5 ms [User: 30.3 ms, System: 2.4 ms]` | `888.5 ms ± 29.8 ms [User: 861.4 ms, System: 26.8 ms]` |
+| Range (min … max) | `31.4 ms … 34.7 ms 88 runs`                        | `841.5 ms … 925.6 ms 10 runs`                          |
+
+#### Criterion benchmarks
+
+Intelhexes throughput,
+
+```
+NRF/print_human/97842
+    time:   [866.81 us 869.18 us 871.99 us]
+    thrpt:  [107.01 MiB/s 107.35 MiB/s 107.65 MiB/s]
+
+NINA/print_human/3414628
+    time:   [30.316 ms 30.361 ms 30.417 ms]
+    thrpt:  [107.06 MiB/s 107.26 MiB/s 107.42 MiB/s]
+```
 
 ### Output
 

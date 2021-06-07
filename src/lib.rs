@@ -1,7 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 
 use std::io::{Error, ErrorKind, Result};
-use std::io::{Read, Write};
+use std::io::{Read, Write, BufWriter};
 
 pub mod ringbuffer;
 
@@ -78,15 +78,15 @@ fn hex_to_u16(bytes: &[u8]) -> u16 {
 fn maybe_fetch<R: Read, const SZ: usize>(
     rb: &mut ringbuffer::RingBuffer<SZ>,
     reader: &mut R,
-    mut need: usize,
+    need: usize,
 ) -> Result<()> {
-    if rb.len() > need {
+    if rb.len() >= need {
         return Ok(());
     }
 
-    need -= rb.len();
+    rb.fill(reader)?;
 
-    if rb.fill(reader)? < need {
+    if rb.len() < need {
         Err(Error::new(
             ErrorKind::Other,
             "Expected more bytes to be available",
@@ -96,23 +96,18 @@ fn maybe_fetch<R: Read, const SZ: usize>(
     }
 }
 
-pub fn print_human<R: Read, W: Write>(mut reader: R, mut writer: W) -> Result<()> {
+pub fn print_human<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
     const BUF_SZ: usize = 4096;
 
     let mut rb: ringbuffer::RingBuffer<BUF_SZ> = ringbuffer::RingBuffer::new();
     let mut addr_offset: u32 = 0;
 
+    let mut writer = BufWriter::new(writer);
+
     rb.fill(&mut reader)?;
 
     loop {
-        if rb.len() < RECORD_HEADER_SZ {
-            let need = RECORD_HEADER_SZ - rb.len();
-            maybe_fetch(&mut rb, &mut reader, need)?;
-        }
-
-        if rb.len() < RECORD_HEADER_SZ {
-            break;
-        }
+        maybe_fetch(&mut rb, &mut reader, RECORD_HEADER_SZ)?;
 
         let buf = rb.wrapping_peek(RECORD_HEADER_SZ).unwrap();
 
@@ -219,12 +214,14 @@ pub fn print_human<R: Read, W: Write>(mut reader: R, mut writer: W) -> Result<()
                 rb.consume(sz).unwrap();
             }
             RecordType::EndOfFile => {
+                writer.flush()?;
                 break;
             }
         }
 
-        maybe_fetch(&mut rb, &mut reader, 1)?;
         loop {
+            maybe_fetch(&mut rb, &mut reader, 1)?;
+
             match rb.peek(1).unwrap()[0] as char {
                 '\r' => {
                     rb.consume(1).unwrap();
@@ -234,8 +231,6 @@ pub fn print_human<R: Read, W: Write>(mut reader: R, mut writer: W) -> Result<()
                 }
                 _ => break,
             };
-
-            maybe_fetch(&mut rb, &mut reader, 1)?;
         }
     }
 
