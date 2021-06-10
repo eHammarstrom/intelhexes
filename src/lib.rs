@@ -96,7 +96,7 @@ fn maybe_fetch<R: Read, const SZ: usize>(
     }
 }
 
-pub fn print_human<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
+pub fn hex2dump<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
     const BUF_SZ: usize = 4096;
 
     let mut rb: ringbuffer::RingBuffer<BUF_SZ> = ringbuffer::RingBuffer::new();

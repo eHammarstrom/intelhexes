@@ -28,11 +28,11 @@ Measured on a laptop with 16GB RAM and an i7-9750H,
 Intelhexes throughput,
 
 ```
-NRF/print_human/97842
+NRF/hex2dump/97842
     time:   [866.81 us 869.18 us 871.99 us]
     thrpt:  [107.01 MiB/s 107.35 MiB/s 107.65 MiB/s]
 
-NINA/print_human/3414628
+NINA/hex2dump/3414628
     time:   [30.316 ms 30.361 ms 30.417 ms]
     thrpt:  [107.06 MiB/s 107.26 MiB/s 107.42 MiB/s]
 ```

@@ -13,7 +13,7 @@ debug = true
 criterion = "0.3"
 
 [[bench]]
-name = "print_human"
+name = "hex2dump"
 harness = false
 
 [dependencies]

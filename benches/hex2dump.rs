@@ -1,7 +1,7 @@
 use criterion::BenchmarkId;
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, Criterion};
-use intelhexes::print_human;
+use intelhexes::hex2dump;
 
 fn nrf_bench(c: &mut Criterion) {
     let hex = include_bytes!("../hex-examples/sniffer_nrf52840dk_nrf52840_7cc811f.hex");
@@ -9,11 +9,11 @@ fn nrf_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("NRF");
     group.throughput(Throughput::Bytes(hex.len() as u64));
     group.bench_with_input(
-        BenchmarkId::new("print_human", hex.len()),
+        BenchmarkId::new("hex2dump", hex.len()),
         &null,
         |b, file| {
             b.iter(|| {
-                print_human(std::io::Cursor::new(hex), file).expect("to be able to parse the hex")
+                hex2dump(std::io::Cursor::new(hex), file).expect("to be able to parse the hex")
             })
         },
     );
@@ -26,11 +26,11 @@ fn nina_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("NINA");
     group.throughput(Throughput::Bytes(hex.len() as u64));
     group.bench_with_input(
-        BenchmarkId::new("print_human", hex.len()),
+        BenchmarkId::new("hex2dump", hex.len()),
         &null,
         |b, file| {
             b.iter(|| {
-                print_human(std::io::Cursor::new(hex), file).expect("to be able to parse the hex")
+                hex2dump(std::io::Cursor::new(hex), file).expect("to be able to parse the hex")
             })
         },
     );
