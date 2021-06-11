@@ -1,12 +1,12 @@
 # intelhexes
 
-Parses intelhex
+Intelhexes implements the following listed features, as found in
+[python-intelhex](https://github.com/python-intelhex/intelhex), while
+performing the operations faster.
 
-## format description
-
-https://en.wikipedia.org/wiki/Intel_HEX
-
-https://www.keil.com/support/docs/1584/
+- [x] hex2dump
+- [ ] bin2hex
+- [ ] hex2bin
 
 ## intelhexes vs python-intelhex
 
@@ -74,3 +74,9 @@ python-intelhex (hex2dump.py):
 82E0  01 11 00 00 25 26 27 03 3F 49 F6 D4 A3 C5 5F 38  |....%&'.?I...._8|
 82F0  74 C9 B3 E3 D2 10 3F 50 4A FF 60 7B EB 40 B7 99  |t.....?PJ.`{.@..|
 ```
+
+## format description
+
+https://en.wikipedia.org/wiki/Intel_HEX
+
+https://www.keil.com/support/docs/1584/
