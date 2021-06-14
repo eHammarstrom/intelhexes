@@ -1,4 +1,5 @@
 #![allow(clippy::needless_range_loop)]
+#![feature(stdsimd)]
 
 use std::cmp;
 use std::io::{BufWriter, Read, Write};
@@ -251,6 +252,33 @@ impl<const LINES: usize> DataRowCache<LINES> {
     }
 }
 
+#[target_feature(enable = "avx512")]
+unsafe fn convert_hex(input: &[u8], output: &mut [u8]) {
+    use std::arch::x86_64::*;
+
+    let ascii_num = _mm256_set1_epi8(b'9' as i8);
+    let ascii_num_sub = _mm256_set1_epi8(48);
+    let ascii_capital_hex = _mm256_set1_epi8(b'F' as i8);
+    let ascii_capital_hex_sub = _mm256_set1_epi8(55);
+    let ascii_lower_hex = _mm256_set1_epi8(b'f' as i8);
+    let ascii_lower_hex_sub = _mm256_set1_epi8(87);
+
+    let bytes = _mm256_loadu_epi8(input.as_ptr() as *const i8);
+
+    let ascii_num_mask = _mm256_cmp_epu8_mask(ascii_num, bytes, _MM_CMPINT_LE);
+    let ascii_capital_hex_mask = _mm256_cmp_epu8_mask(ascii_capital_hex, bytes, _MM_CMPINT_LE);
+    let ascii_lower_hex_mask = _mm256_cmp_epu8_mask(ascii_lower_hex, bytes, _MM_CMPINT_LE);
+
+    /* Convert ASCII number to unsigned integer */
+    let bytes = _mm256_mask_subs_epu8(bytes, ascii_num_mask, bytes, ascii_num_sub);
+    /* Convert ASCII A-F hex to unsigned integer */
+    let bytes = _mm256_mask_subs_epu8(bytes, ascii_capital_hex_mask, bytes, ascii_capital_hex_sub);
+    /* Convert ASCII a-f hex to unsigned integer */
+    let bytes = _mm256_mask_subs_epu8(bytes, ascii_lower_hex_mask, bytes, ascii_lower_hex_sub);
+
+    _mm256_storeu_epi8(output.as_mut_ptr() as *mut i8, bytes)
+}
+
 fn print_row<W: Write>(writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
     let mut hex_buf = [0u8; 64];
     let mut hex_len = 0;
@@ -273,8 +301,12 @@ fn print_row<W: Write>(writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
 
     let mut str_buf = [0u8; 16];
     let mut str_len = 0;
-    for (i, bs) in buf.chunks(2).enumerate() {
-        str_buf[i] = hex_to_u8(&bs[..2]);
+
+    let mut unhexified_buf = [0u8; 32];
+    unsafe { convert_hex(buf, &mut unhexified_buf); }
+
+    for (i, bs) in unhexified_buf.chunks(2).enumerate() {
+        str_buf[i] = 16 * bs[0] + bs[1];
         if str_buf[i] >= 127 || str_buf[i] <= 31 {
             str_buf[i] = b'.';
         }

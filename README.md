@@ -76,4 +76,12 @@ python-intelhex (hex2dump.py):
 
 https://en.wikipedia.org/wiki/Intel_HEX
 
-https://www.keil.com/support/docs/1584/
+https://www.keil.com/support/docs/1584
+
+## other resources
+
+### x86_64
+
+https://software.intel.com/sites/landingpage/IntrinsicsGuide
+
+https://rust-lang.github.io/stdarch/x86_64/core_arch/x86_64/index.html
