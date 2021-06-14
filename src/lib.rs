@@ -66,15 +66,34 @@ impl RecordType {
 }
 
 #[inline]
+fn atou8(c: u8) -> u8 {
+    if c <= b'9' {
+        c - 48
+    } else if c <= b'F' {
+        c - 55
+    } else if c <= b'f' {
+        c - 87
+    } else {
+        0
+    }
+}
+
+#[inline]
+fn atou16(c: u8) -> u16 {
+    return atou8(c) as u16;
+}
+
+#[inline]
 fn hex_to_u8(bytes: &[u8]) -> u8 {
-    let s = unsafe { std::str::from_utf8_unchecked(bytes) };
-    u8::from_str_radix(s, 16).unwrap()
+    return 16 * atou8(bytes[0]) + atou8(bytes[1]);
 }
 
 #[inline]
 fn hex_to_u16(bytes: &[u8]) -> u16 {
-    let s = unsafe { std::str::from_utf8_unchecked(bytes) };
-    u16::from_str_radix(s, 16).unwrap()
+    return 4096 * atou16(bytes[0])
+        + 256 * atou16(bytes[1])
+        + 16 * atou16(bytes[2])
+        + atou16(bytes[3]);
 }
 
 #[inline]

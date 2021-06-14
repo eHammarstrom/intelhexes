@@ -28,19 +28,16 @@ Measured on a laptop with 16GB RAM and an i7-9750H,
 Intelhexes throughput,
 
 ```
-NRF/hex2dump/97842      time:   [825.36 us 826.62 us 828.10 us]
-                        thrpt:  [112.68 MiB/s 112.88 MiB/s 113.05 MiB/s]
-
-    Found 11 outliers among 100 measurements (11.00%)
-      6 (6.00%) high mild
-      5 (5.00%) high severe
-
-NINA/hex2dump/3414628   time:   [29.971 ms 30.029 ms 30.098 ms]
-                        thrpt:  [108.20 MiB/s 108.45 MiB/s 108.65 MiB/s]
-
+NRF/hex2dump/97842      time:   [683.19 us 684.79 us 686.59 us]
+                        thrpt:  [135.90 MiB/s 136.26 MiB/s 136.58 MiB/s]
     Found 7 outliers among 100 measurements (7.00%)
       3 (3.00%) high mild
       4 (4.00%) high severe
+
+NINA/hex2dump/3414628   time:   [23.991 ms 24.041 ms 24.096 ms]
+                        thrpt:  [135.15 MiB/s 135.45 MiB/s 135.74 MiB/s]
+    Found 4 outliers among 100 measurements (4.00%)
+      4 (4.00%) high mild
 ```
 
 ### Output versus python-intelhex
