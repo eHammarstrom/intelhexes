@@ -1,10 +1,15 @@
 #![allow(clippy::needless_range_loop)]
 
+mod datawriter;
+mod ringbuffer;
+mod helpers;
+
 use std::cmp;
 use std::io::{BufWriter, Read, Write};
 use std::io::{Error, ErrorKind, Result};
 
-pub mod ringbuffer;
+use datawriter::*;
+use helpers::*;
 
 const COLON: usize = 1;
 
@@ -68,37 +73,6 @@ impl RecordType {
 }
 
 #[inline]
-fn atou8(c: u8) -> u8 {
-    if c <= b'9' {
-        c - 48
-    } else if c <= b'F' {
-        c - 55
-    } else if c <= b'f' {
-        c - 87
-    } else {
-        0
-    }
-}
-
-#[inline]
-fn atou16(c: u8) -> u16 {
-    return atou8(c) as u16;
-}
-
-#[inline]
-fn hex_to_u8(bytes: &[u8]) -> u8 {
-    return 16 * atou8(bytes[0]) + atou8(bytes[1]);
-}
-
-#[inline]
-fn hex_to_u16(bytes: &[u8]) -> u16 {
-    return 4096 * atou16(bytes[0])
-        + 256 * atou16(bytes[1])
-        + 16 * atou16(bytes[2])
-        + atou16(bytes[3]);
-}
-
-#[inline]
 fn maybe_fetch<R: Read, const SZ: usize>(
     rb: &mut ringbuffer::RingBuffer<SZ>,
     reader: &mut R,
@@ -139,35 +113,23 @@ impl DataRow {
     }
 }
 
-struct DataRowCache<W: Write, const LINES: usize> {
+struct DataRowCache<'a, W: Write, DWR: DataWriter<W>, const LINES: usize> {
     cache: [DataRow; LINES],
     read_idx: usize,
     write_idx: usize,
-    write_fn: fn(&mut W, i64, &[u8]) -> Result<()>,
+    data_writer: &'a mut DWR,
+    _data_writer_writer: std::marker::PhantomData<W>,
 }
 
-impl<W: Write, const LINES: usize> Iterator for DataRowCache<W, LINES> {
-    type Item = DataRow;
-
-    fn next(&mut self) -> Option<DataRow> {
-        if self.read_idx == self.write_idx {
-            None
-        } else {
-            let d = self.cache[self.read_idx];
-            self.read_idx = (1 + self.read_idx) % LINES;
-            Some(d)
-        }
-    }
-}
-
-impl<W: Write, const LINES: usize> DataRowCache<W, LINES> {
-    fn new(write_fn: fn(&mut W, i64, &[u8]) -> Result<()>) -> DataRowCache<W, LINES>
+impl<'a, W: Write, DWR: DataWriter<W>, const LINES: usize> DataRowCache<'a, W, DWR, LINES> {
+    fn new(data_writer: &mut DWR) -> DataRowCache<W, DWR, LINES>
     {
         DataRowCache {
             cache: [DataRow::default(); LINES],
             read_idx: 0,
             write_idx: 0,
-            write_fn,
+            data_writer,
+            _data_writer_writer: std::marker::PhantomData,
         }
     }
 
@@ -236,7 +198,7 @@ impl<W: Write, const LINES: usize> DataRowCache<W, LINES> {
         /* Row address correction should not be applied here since this was an aligned
          * data row that was just missing some data
          */
-        (self.write_fn)(writer, addr_offset + addr as i64, &buf[..])?;
+        self.data_writer.write(writer, addr_offset + addr as i64, &buf[..])?;
 
         Ok(self.available())
     }
@@ -245,61 +207,25 @@ impl<W: Write, const LINES: usize> DataRowCache<W, LINES> {
         /* Build a full row if possible */
         self.build_and_print_row(writer, addr_offset)?;
         /* Dump remaining rows. Logically it should only be 1 */
-        let write_fn = self.write_fn;
-        for row in self {
-            write_fn(
+        while self.read_idx != self.write_idx {
+            let row = self.cache[self.read_idx];
+            self.read_idx = (1 + self.read_idx) % LINES;
+            self.data_writer.write(
                 writer,
                 addr_offset + row.addr as i64,
                 &row.data[..row.len as usize],
             )?;
         }
+
         Ok(())
     }
 }
 
-fn print_row_as_hex<W: Write>(writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
-    let mut hex_buf = [0u8; 64];
-    let mut hex_len = 0;
-
-    for i in 0..buf.len() {
-        hex_buf[hex_len] = buf[i];
-        hex_len += 1;
-
-        if i < 31 {
-            if (i + 1) % 16 == 0 {
-                hex_buf[hex_len] = b' ';
-                hex_len += 1;
-            }
-            if (i + 1) % 2 == 0 {
-                hex_buf[hex_len] = b' ';
-                hex_len += 1;
-            }
-        }
-    }
-
-    let mut str_buf = [0u8; 16];
-    let mut str_len = 0;
-    for (i, bs) in buf.chunks(2).enumerate() {
-        str_buf[i] = hex_to_u8(&bs[..2]);
-        if str_buf[i] >= 127 || str_buf[i] <= 31 {
-            str_buf[i] = b'.';
-        }
-        str_len += 1;
-    }
-
-    writeln!(
-        writer,
-        "{:#010X}  {:<48}  |{:<16}|",
-        addr,
-        unsafe { std::str::from_utf8_unchecked(&hex_buf[..hex_len]) },
-        unsafe { std::str::from_utf8_unchecked(&str_buf[..str_len]) }
-    )?;
-
-    Ok(())
-}
-
-fn process<R: Read, W: Write>(mut reader: R, writer: W, write_fn: fn(&mut BufWriter<W>, i64, &[u8]) -> Result<()>) -> Result<()>
-{
+fn process<R: Read, W: Write, DWR: DataWriter<BufWriter<W>>>(
+    mut reader: R,
+    writer: W,
+    data_writer: &mut DWR,
+) -> Result<()> {
     const BUF_SZ: usize = 4096;
 
     let mut rb: ringbuffer::RingBuffer<BUF_SZ> = ringbuffer::RingBuffer::new();
@@ -309,7 +235,7 @@ fn process<R: Read, W: Write>(mut reader: R, writer: W, write_fn: fn(&mut BufWri
 
     rb.fill(&mut reader)?;
 
-    let mut data_cache: DataRowCache<_, 8> = DataRowCache::new(write_fn);
+    let mut data_cache: DataRowCache<_, _, 8> = DataRowCache::new(data_writer);
     let mut row_addr_correction: i64 = 0;
 
     loop {
@@ -361,11 +287,14 @@ fn process<R: Read, W: Write>(mut reader: R, writer: W, write_fn: fn(&mut BufWri
                      */
                     row_addr_correction -= (data_len / 2) as i64;
                 } else {
-                    write_fn(
+                    data_cache.push((addr_offset + row_addr_correction + addr as i64) as u16, &buf[DATA_START..sz - CHECKSUM_SZ]);
+                    /*
+                    data_writer.write(
                         &mut writer,
                         addr_offset + row_addr_correction + addr as i64,
                         &buf[DATA_START..sz - CHECKSUM_SZ],
                     )?;
+                    */
                 }
 
                 rb.consume(sz).unwrap();
@@ -445,11 +374,13 @@ fn process<R: Read, W: Write>(mut reader: R, writer: W, write_fn: fn(&mut BufWri
 }
 
 pub fn hex2dump<R: Read, W: Write>(reader: R, writer: W) -> Result<()> {
-    process(reader, writer, print_row_as_hex)
+    let mut hex_writer = HexDataWriter::new();
+    process(reader, writer, &mut hex_writer)
 }
 
 pub fn hex2bin<R: Read, W: Write>(reader: R, writer: W, fill_byte: u8) -> Result<()> {
-    process(reader, writer, print_row_as_hex)
+    let mut hex_writer = BinDataWriter::new(fill_byte);
+    process(reader, writer, &mut hex_writer)
 }
 
 #[cfg(test)]
