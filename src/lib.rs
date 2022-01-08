@@ -412,10 +412,10 @@ mod tests {
         Ok(())
     }
 
-    fn load_test(p: &'static str) -> Result<(File, File, File)> {
-        let reader_path = format!("test_input/{}.in", p);
-        let writer_path = format!("test_input/{}.out", p);
-        let truth_path = format!("test_input/{}.truth", p);
+    fn load_test(p: &'static str, test_type: &'static str) -> Result<(File, File, File)> {
+        let reader_path = format!("test/{}.in", p);
+        let writer_path = format!("test/{}/{}.out", test_type, p);
+        let truth_path = format!("test/{}/{}.truth", test_type, p);
 
         let reader = File::open(reader_path)?;
         let writer = File::create(writer_path)?;
@@ -427,11 +427,11 @@ mod tests {
     #[test]
     fn it_works_on_partial_lines() {
         let test = "partial_line";
-        let (reader, mut writer, truth) = load_test(test).expect("to find test files");
+        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
 
         assert!(hex2dump(reader, &mut writer).is_ok());
 
-        let output = File::open(format!("test_input/{}.out", test)).unwrap();
+        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
 
         is_equal(output, truth).expect("comparison to succeed");
     }
@@ -439,11 +439,11 @@ mod tests {
     #[test]
     fn it_equals_py_hex2dump_output_nrf() {
         let test = "sniffer_nrf52840dk_nrf52840_7cc811f";
-        let (reader, mut writer, truth) = load_test(test).expect("to find test files");
+        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
 
         assert!(hex2dump(reader, &mut writer).is_ok());
 
-        let output = File::open(format!("test_input/{}.out", test)).unwrap();
+        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
 
         is_equal(output, truth).expect("comparison to succeed");
     }
@@ -453,11 +453,11 @@ mod tests {
         /* This file is to large to diff in memory as strings, so we do it iteratively */
 
         let test = "NINA-W15X-SW-4.0.0-006";
-        let (reader, mut writer, truth) = load_test(test).expect("to find test files");
+        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
 
         assert!(hex2dump(reader, &mut writer).is_ok());
 
-        let output = File::open(format!("test_input/{}.out", test)).unwrap();
+        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
 
         let output_metadata = output.metadata().unwrap();
         let truth_metadata = truth.metadata().unwrap();
