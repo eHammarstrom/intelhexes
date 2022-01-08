@@ -17,4 +17,4 @@ name = "hex2dump"
 harness = false
 
 [dependencies]
-
+structopt = "0.3"

@@ -8,6 +8,7 @@ pub mod ringbuffer;
 
 const COLON: usize = 1;
 
+// header offsets
 const HDR_LEN: usize = COLON;
 const HDR_LEN_SZ: usize = 2;
 const HDR_ADDR: usize = HDR_LEN + HDR_LEN_SZ;
@@ -20,6 +21,7 @@ const CHECKSUM_SZ: usize = 2;
 
 const DATA_ROW_HEX_SZ: usize = 32;
 
+// data row offsets
 const EXT_LINEAR_ADDR_UPPER_ADDR: usize = COLON + 8;
 const EXT_LINEAR_ADDR_UPPER_ADDR_SZ: usize = 4;
 const EXT_SEGMENT_ADDR_UPPER_ADDR: usize = COLON + 8;
@@ -137,13 +139,14 @@ impl DataRow {
     }
 }
 
-struct DataRowCache<const LINES: usize> {
+struct DataRowCache<W: Write, const LINES: usize> {
     cache: [DataRow; LINES],
     read_idx: usize,
     write_idx: usize,
+    write_fn: fn(&mut W, i64, &[u8]) -> Result<()>,
 }
 
-impl<const LINES: usize> Iterator for DataRowCache<LINES> {
+impl<W: Write, const LINES: usize> Iterator for DataRowCache<W, LINES> {
     type Item = DataRow;
 
     fn next(&mut self) -> Option<DataRow> {
@@ -157,12 +160,14 @@ impl<const LINES: usize> Iterator for DataRowCache<LINES> {
     }
 }
 
-impl<const LINES: usize> DataRowCache<LINES> {
-    fn new() -> DataRowCache<LINES> {
+impl<W: Write, const LINES: usize> DataRowCache<W, LINES> {
+    fn new(write_fn: fn(&mut W, i64, &[u8]) -> Result<()>) -> DataRowCache<W, LINES>
+    {
         DataRowCache {
             cache: [DataRow::default(); LINES],
             read_idx: 0,
             write_idx: 0,
+            write_fn,
         }
     }
 
@@ -201,7 +206,7 @@ impl<const LINES: usize> DataRowCache<LINES> {
         }
     }
 
-    fn build_and_print_row<W: Write>(&mut self, writer: &mut W, addr_offset: i64) -> Result<usize> {
+    fn build_and_print_row(&mut self, writer: &mut W, addr_offset: i64) -> Result<usize> {
         let avail = self.available();
 
         /* Not possible, return available bytes */
@@ -231,17 +236,18 @@ impl<const LINES: usize> DataRowCache<LINES> {
         /* Row address correction should not be applied here since this was an aligned
          * data row that was just missing some data
          */
-        print_row(writer, addr_offset + addr as i64, &buf[..])?;
+        (self.write_fn)(writer, addr_offset + addr as i64, &buf[..])?;
 
         Ok(self.available())
     }
 
-    fn dump_cache<W: Write>(&mut self, writer: &mut W, addr_offset: i64) -> Result<()> {
+    fn dump_cache(&mut self, writer: &mut W, addr_offset: i64) -> Result<()> {
         /* Build a full row if possible */
         self.build_and_print_row(writer, addr_offset)?;
         /* Dump remaining rows. Logically it should only be 1 */
+        let write_fn = self.write_fn;
         for row in self {
-            print_row(
+            write_fn(
                 writer,
                 addr_offset + row.addr as i64,
                 &row.data[..row.len as usize],
@@ -251,7 +257,7 @@ impl<const LINES: usize> DataRowCache<LINES> {
     }
 }
 
-fn print_row<W: Write>(writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
+fn print_row_as_hex<W: Write>(writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
     let mut hex_buf = [0u8; 64];
     let mut hex_len = 0;
 
@@ -292,7 +298,8 @@ fn print_row<W: Write>(writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn hex2dump<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
+fn process<R: Read, W: Write>(mut reader: R, writer: W, write_fn: fn(&mut BufWriter<W>, i64, &[u8]) -> Result<()>) -> Result<()>
+{
     const BUF_SZ: usize = 4096;
 
     let mut rb: ringbuffer::RingBuffer<BUF_SZ> = ringbuffer::RingBuffer::new();
@@ -302,7 +309,7 @@ pub fn hex2dump<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
 
     rb.fill(&mut reader)?;
 
-    let mut data_cache: DataRowCache<8> = DataRowCache::new();
+    let mut data_cache: DataRowCache<_, 8> = DataRowCache::new(write_fn);
     let mut row_addr_correction: i64 = 0;
 
     loop {
@@ -354,7 +361,7 @@ pub fn hex2dump<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
                      */
                     row_addr_correction -= (data_len / 2) as i64;
                 } else {
-                    print_row(
+                    write_fn(
                         &mut writer,
                         addr_offset + row_addr_correction + addr as i64,
                         &buf[DATA_START..sz - CHECKSUM_SZ],
@@ -435,6 +442,14 @@ pub fn hex2dump<R: Read, W: Write>(mut reader: R, writer: W) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub fn hex2dump<R: Read, W: Write>(reader: R, writer: W) -> Result<()> {
+    process(reader, writer, print_row_as_hex)
+}
+
+pub fn hex2bin<R: Read, W: Write>(reader: R, writer: W, fill_byte: u8) -> Result<()> {
+    process(reader, writer, print_row_as_hex)
 }
 
 #[cfg(test)]

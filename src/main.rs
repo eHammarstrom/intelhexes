@@ -1,39 +1,61 @@
-use intelhexes::hex2dump;
+use intelhexes::{hex2dump, hex2bin};
+use std::fs;
+use std::io;
+use std::path::PathBuf;
+use std::result;
+use structopt::StructOpt;
+
+#[derive(StructOpt, Debug)]
+#[structopt(name = "basic")]
+struct Opt {
+    /// Produce a human-readable dump from the intel HEX input file
+    #[structopt(long)]
+    hex2dump: bool,
+
+    /// Produce a binary from the intel HEX input file
+    #[structopt(long)]
+    hex2bin: bool,
+
+    /// Byte used to fill empty address space when producing a binary
+    #[structopt(long)]
+    fill_byte: Option<u8>,
+
+    /// Output file, stdout if unspecified
+    #[structopt(short, long, parse(from_os_str))]
+    output: Option<PathBuf>,
+
+    /// Input file
+    #[structopt(name = "FILE", parse(from_os_str))]
+    file: PathBuf,
+}
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let opt = Opt::from_args();
+    let output_file: Box<dyn io::Write> = opt
+        .output
+        .map(fs::File::open)
+        .map(result::Result::ok)
+        .flatten()
+        .map(|f| Box::new(f) as Box<dyn io::Write>)
+        .unwrap_or(Box::new(io::stdout()));
 
-    if args.len() != 2 {
-        eprintln!("Usage: intelhexes FILE");
-        std::process::exit(1);
-    }
+    let input_file = fs::File::open(opt.file).expect("Invalid input file path");
 
-    let f = match std::fs::File::open(&args[1]) {
-        Ok(f) => f,
-        Err(e) => std::process::exit(e.raw_os_error().unwrap_or(1)),
-    };
-
-    let exit_code = match hex2dump(f, std::io::stdout()) {
-        Ok(_) => 0,
-        Err(e) => e.raw_os_error().unwrap_or(1),
+    let exit_code = if opt.hex2dump {
+        match hex2dump(input_file, output_file) {
+            Ok(_) => 0,
+            Err(e) => e.raw_os_error().unwrap_or(1),
+        }
+    } else if opt.hex2bin {
+        let fill_byte = opt.fill_byte.unwrap_or(0);
+        match hex2bin(input_file, output_file, fill_byte) {
+            Ok(_) => 0,
+            Err(e) => e.raw_os_error().unwrap_or(1),
+        }
+    } else {
+        println!("No operations specified, bye!");
+        0
     };
 
     std::process::exit(exit_code);
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn it_works_nrf() {
-        let hex = include_bytes!("../hex-examples/sniffer_nrf52840dk_nrf52840_7cc811f.hex");
-        assert!(hex2dump(std::io::Cursor::new(hex), std::io::stdout()).is_ok());
-    }
-
-    #[test]
-    fn it_works_nina() {
-        let hex = include_bytes!("../hex-examples/NINA-W15X-SW-4.0.0-006.hex");
-        assert!(hex2dump(std::io::Cursor::new(hex), std::io::stdout()).is_ok());
-    }
 }
