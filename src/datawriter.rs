@@ -58,7 +58,8 @@ impl<W: Write> DataWriter<W> for HexDataWriter {
 }
 
 pub struct BinDataWriter {
-    prev_addr: u16,
+    prev_addr: i64,
+    prev_bytes_written: i64,
     fill_byte: u8,
 }
 
@@ -66,6 +67,7 @@ impl BinDataWriter {
     pub fn new(fill_byte: u8) -> BinDataWriter {
         BinDataWriter {
             prev_addr: 0,
+            prev_bytes_written: 0,
             fill_byte,
         }
     }
@@ -73,6 +75,30 @@ impl BinDataWriter {
 
 impl<W: Write> DataWriter<W> for BinDataWriter {
     fn write(&mut self, writer: &mut W, addr: i64, buf: &[u8]) -> Result<()> {
+        let mut byte_buf = [0u8; 16];
+        let mut byte_buf_len = 0;
+        let fill_bytes_to_write = addr - self.prev_addr - self.prev_bytes_written;
+
+        if addr < self.prev_addr {
+            eprintln!("Expected increasing address order; found {:#010x} followed by {:#010x}",
+                self.prev_addr, addr);
+            return Err(std::io::ErrorKind::Unsupported.into());
+        }
+
+        for _ in 0..fill_bytes_to_write {
+            writer.write(&[ self.fill_byte ])?;
+        }
+
+        for (i, bs) in buf.chunks(2).enumerate() {
+            byte_buf[i] = hex_to_u8(&bs[..2]);
+            byte_buf_len += 1;
+        }
+
+        writer.write(&byte_buf[..byte_buf_len])?;
+
+        self.prev_addr = addr;
+        self.prev_bytes_written = byte_buf_len as i64;
+
         Ok(())
     }
 }

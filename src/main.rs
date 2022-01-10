@@ -47,7 +47,7 @@ fn main() {
             Err(e) => e.raw_os_error().unwrap_or(1),
         }
     } else if opt.hex2bin {
-        let fill_byte = opt.fill_byte.unwrap_or(0);
+        let fill_byte = opt.fill_byte.unwrap_or(0xff);
         match hex2bin(input_file, output_file, fill_byte) {
             Ok(_) => 0,
             Err(e) => e.raw_os_error().unwrap_or(1),

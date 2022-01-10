@@ -6,7 +6,7 @@ performing the operations faster.
 
 - [x] hex2dump
 - [ ] bin2hex
-- [ ] hex2bin
+- [x] hex2bin
 
 ## intelhexes vs python-intelhex
 
