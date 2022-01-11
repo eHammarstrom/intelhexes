@@ -11,6 +11,14 @@ use std::io::{Error, ErrorKind, Result};
 use datawriter::*;
 use helpers::*;
 
+use toml_cfg;
+
+#[toml_cfg::toml_config]
+pub struct Config {
+    #[default(4096)]
+    ringbuf_sz: usize,
+}
+
 const COLON: usize = 1;
 
 // header offsets
@@ -226,9 +234,8 @@ fn process<R: Read, W: Write, DWR: DataWriter<BufWriter<W>>>(
     writer: W,
     data_writer: &mut DWR,
 ) -> Result<()> {
-    const BUF_SZ: usize = 4096;
-
-    let mut rb: ringbuffer::RingBuffer<BUF_SZ> = ringbuffer::RingBuffer::new();
+    const SZ: usize = crate::CONFIG.ringbuf_sz;
+    let mut rb: ringbuffer::RingBuffer<SZ> = ringbuffer::RingBuffer::new();
     let mut addr_offset: i64 = 0;
 
     let mut writer = BufWriter::new(writer);

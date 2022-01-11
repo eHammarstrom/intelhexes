@@ -18,3 +18,4 @@ harness = false
 
 [dependencies]
 structopt = "0.3"
+toml-cfg = "0.1.1"
