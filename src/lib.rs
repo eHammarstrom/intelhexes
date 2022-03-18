@@ -466,6 +466,23 @@ mod tests {
     }
 
     #[test]
+    fn it_equals_py_hex2dump_output_addrspace_gap() {
+        let test = "addrspace-gap";
+        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
+
+        assert!(hex2dump(reader, &mut writer).is_ok());
+
+        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
+
+        let output_metadata = output.metadata().unwrap();
+        let truth_metadata = truth.metadata().unwrap();
+
+        assert_eq!(output_metadata.len(), truth_metadata.len());
+
+        is_equal(output, truth).expect("comparison to succeed");
+    }
+
+    #[test]
     fn it_equals_py_hex2bin_output_nrf() {
         let test = "sniffer_nrf52840dk_nrf52840_7cc811f";
         let (reader, mut writer, truth) = load_test(test, "bin").expect("to find test files");
@@ -499,4 +516,20 @@ mod tests {
         is_equal(output, truth).expect("comparison to succeed");
     }
 
+    #[test]
+    fn it_equals_py_hex2bin_output_addrspace_gap() {
+        let test = "addrspace-gap";
+        let (reader, mut writer, truth) = load_test(test, "bin").expect("to find test files");
+
+        assert!(hex2bin(reader, &mut writer, 0xff).is_ok());
+
+        let output = File::open(format!("test/bin/{}.out", test)).unwrap();
+
+        let output_metadata = output.metadata().unwrap();
+        let truth_metadata = truth.metadata().unwrap();
+
+        assert_eq!(output_metadata.len(), truth_metadata.len());
+
+        is_equal(output, truth).expect("comparison to succeed");
+    }
 }
