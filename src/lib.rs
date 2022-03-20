@@ -290,13 +290,6 @@ fn process<R: Read, W: Write, DWR: DataWriter<BufWriter<W>>>(
                     row_addr_correction -= (data_len / 2) as i64;
                 } else {
                     data_cache.push((addr_offset + row_addr_correction + addr as i64) as u16, &buf[DATA_START..sz - CHECKSUM_SZ]);
-                    /*
-                    data_writer.write(
-                        &mut writer,
-                        addr_offset + row_addr_correction + addr as i64,
-                        &buf[DATA_START..sz - CHECKSUM_SZ],
-                    )?;
-                    */
                 }
 
                 rb.consume(sz).unwrap();

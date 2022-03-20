@@ -81,10 +81,6 @@ impl<const SIZE: usize> RingBuffer<SIZE> {
         }
     }
 
-    pub fn buf(&self) -> &[u8] {
-        &self.buf
-    }
-
     /// Copyless peek may reach end of buffer, the "wrap"
     pub fn peek(&self, len: usize) -> RBResult<&[u8]> {
         if len > SIZE - self.read_idx {
