@@ -12,6 +12,23 @@ impl HexDataWriter {
     pub fn new() -> HexDataWriter {
         HexDataWriter {}
     }
+
+    fn write_row<W: Write>(
+        mut writer: W,
+        addr: i64,
+        hex_buf: &[u8],
+        hex_len: usize,
+        str_buf: &[u8],
+        str_len: usize,
+    ) -> Result<()> {
+        writeln!(
+            writer,
+            "{:#010X}  {:<48}  |{:<16}|",
+            addr,
+            unsafe { std::str::from_utf8_unchecked(&hex_buf[..hex_len]) },
+            unsafe { std::str::from_utf8_unchecked(&str_buf[..str_len]) }
+        )
+    }
 }
 
 impl<W: Write> DataWriter<W> for HexDataWriter {
@@ -45,13 +62,7 @@ impl<W: Write> DataWriter<W> for HexDataWriter {
             str_len += 1;
         }
 
-        writeln!(
-            writer,
-            "{:#010X}  {:<48}  |{:<16}|",
-            addr,
-            unsafe { std::str::from_utf8_unchecked(&hex_buf[..hex_len]) },
-            unsafe { std::str::from_utf8_unchecked(&str_buf[..str_len]) }
-        )?;
+        HexDataWriter::write_row(writer, addr, &hex_buf, hex_len, &str_buf, str_len)?;
 
         Ok(())
     }
