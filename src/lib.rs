@@ -424,112 +424,62 @@ mod tests {
         Ok((reader, writer, truth))
     }
 
-    #[test]
-    fn it_works_on_partial_lines() {
-        let test = "partial_line";
-        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
+    fn run_test(test: &'static str, folder: &'static str, f: fn(File, &mut File) -> Result<()>)
+    {
+        let (reader, mut writer, truth) = load_test(test, folder).expect("to find test files");
 
-        assert!(hex2dump(reader, &mut writer).is_ok());
+        assert!(f(reader, &mut writer).is_ok());
 
-        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
+        let output = File::open(format!("test/{}/{}.out", folder, test)).unwrap();
+
+        let output_metadata = output.metadata().unwrap();
+        let truth_metadata = truth.metadata().unwrap();
+
+        assert_eq!(output_metadata.len(), truth_metadata.len());
 
         is_equal(output, truth).expect("comparison to succeed");
+    }
+
+    fn run_hex_test(test: &'static str) {
+        run_test(test, "hex", |infile, outfile| { hex2dump(infile, outfile) });
+    }
+
+    fn run_bin_test(test: &'static str) {
+        run_test(test, "bin", |infile, outfile| { hex2bin(infile, outfile, 0xff) });
+    }
+
+    #[test]
+    fn it_works_on_partial_lines() {
+        run_hex_test("partial_line");
     }
 
     #[test]
     fn it_equals_py_hex2dump_output_nrf() {
-        let test = "sniffer_nrf52840dk_nrf52840_7cc811f";
-        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
-
-        assert!(hex2dump(reader, &mut writer).is_ok());
-
-        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
-
-        is_equal(output, truth).expect("comparison to succeed");
+        run_hex_test("sniffer_nrf52840dk_nrf52840_7cc811f");
     }
 
     #[test]
     fn it_equals_py_hex2dump_output_nina() {
-        let test = "NINA-W15X-SW-4.0.0-006";
-        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
-
-        assert!(hex2dump(reader, &mut writer).is_ok());
-
-        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
-
-        let output_metadata = output.metadata().unwrap();
-        let truth_metadata = truth.metadata().unwrap();
-
-        assert_eq!(output_metadata.len(), truth_metadata.len());
-
-        is_equal(output, truth).expect("comparison to succeed");
+        run_hex_test("NINA-W15X-SW-4.0.0-006");
     }
 
     #[test]
-    fn it_equals_py_hex2dump_output_addrspace_gap() {
-        let test = "addrspace-gap";
-        let (reader, mut writer, truth) = load_test(test, "hex").expect("to find test files");
-
-        assert!(hex2dump(reader, &mut writer).is_ok());
-
-        let output = File::open(format!("test/hex/{}.out", test)).unwrap();
-
-        let output_metadata = output.metadata().unwrap();
-        let truth_metadata = truth.metadata().unwrap();
-
-        assert_eq!(output_metadata.len(), truth_metadata.len());
-
-        is_equal(output, truth).expect("comparison to succeed");
+    fn it_equals_py_hex2dump_output_addrspace_gap_mid() {
+        run_hex_test("addrspace-gap-mid");
     }
 
     #[test]
     fn it_equals_py_hex2bin_output_nrf() {
-        let test = "sniffer_nrf52840dk_nrf52840_7cc811f";
-        let (reader, mut writer, truth) = load_test(test, "bin").expect("to find test files");
-
-        assert!(hex2bin(reader, &mut writer, 0xff).is_ok());
-
-        let output = File::open(format!("test/bin/{}.out", test)).unwrap();
-
-        let output_metadata = output.metadata().unwrap();
-        let truth_metadata = truth.metadata().unwrap();
-
-        assert_eq!(output_metadata.len(), truth_metadata.len());
-
-        is_equal(output, truth).expect("comparison to succeed");
+        run_bin_test("sniffer_nrf52840dk_nrf52840_7cc811f");
     }
 
     #[test]
     fn it_equals_py_hex2bin_output_nina() {
-        let test = "NINA-W15X-SW-4.0.0-006";
-        let (reader, mut writer, truth) = load_test(test, "bin").expect("to find test files");
-
-        assert!(hex2bin(reader, &mut writer, 0xff).is_ok());
-
-        let output = File::open(format!("test/bin/{}.out", test)).unwrap();
-
-        let output_metadata = output.metadata().unwrap();
-        let truth_metadata = truth.metadata().unwrap();
-
-        assert_eq!(output_metadata.len(), truth_metadata.len());
-
-        is_equal(output, truth).expect("comparison to succeed");
+        run_bin_test("NINA-W15X-SW-4.0.0-006");
     }
 
     #[test]
-    fn it_equals_py_hex2bin_output_addrspace_gap() {
-        let test = "addrspace-gap";
-        let (reader, mut writer, truth) = load_test(test, "bin").expect("to find test files");
-
-        assert!(hex2bin(reader, &mut writer, 0xff).is_ok());
-
-        let output = File::open(format!("test/bin/{}.out", test)).unwrap();
-
-        let output_metadata = output.metadata().unwrap();
-        let truth_metadata = truth.metadata().unwrap();
-
-        assert_eq!(output_metadata.len(), truth_metadata.len());
-
-        is_equal(output, truth).expect("comparison to succeed");
+    fn it_equals_py_hex2bin_output_addrspace_gap_mid() {
+        run_bin_test("addrspace-gap-mid");
     }
 }
