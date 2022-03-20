@@ -474,6 +474,11 @@ mod tests {
     }
 
     #[test]
+    fn it_equals_py_hex2dump_output_addrspace_gap_mid_partial() {
+        run_hex_test("addrspace-gap-mid-partial");
+    }
+
+    #[test]
     fn it_equals_py_hex2bin_output_nrf() {
         run_bin_test("sniffer_nrf52840dk_nrf52840_7cc811f");
     }
@@ -491,5 +496,10 @@ mod tests {
     #[test]
     fn it_equals_py_hex2bin_output_addrspace_gap_mid() {
         run_bin_test("addrspace-gap-mid");
+    }
+
+    #[test]
+    fn it_equals_py_hex2bin_output_addrspace_gap_mid_partial() {
+        run_bin_test("addrspace-gap-mid-partial");
     }
 }
