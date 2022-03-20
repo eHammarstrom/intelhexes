@@ -143,6 +143,10 @@ impl<'a, W: Write, DWR: DataWriter<W>, const LINES: usize> DataRowCache<'a, W, D
         self.cache[self.read_idx] = DataRow::new(addr, bytes);
     }
 
+    fn peek(&self) -> &DataRow {
+        return &self.cache[self.read_idx];
+    }
+
     fn pop(&mut self) -> DataRow {
         let d = self.cache[self.read_idx];
         self.read_idx = (self.read_idx + 1) % LINES;
@@ -177,12 +181,9 @@ impl<'a, W: Write, DWR: DataWriter<W>, const LINES: usize> DataRowCache<'a, W, D
         }
 
         let mut buf: [u8; DATA_ROW_HEX_SZ] = [0u8; DATA_ROW_HEX_SZ];
-        let d = self.pop();
-        let addr = d.addr;
         let mut len = 0;
+        let print_addr = self.peek().addr;
 
-        buf[..d.len as usize].copy_from_slice(&d.data[..d.len as usize]);
-        len += d.len;
         while len < DATA_ROW_HEX_SZ as u8 {
             let d = self.pop();
             let to_write = cmp::min(d.len as usize, DATA_ROW_HEX_SZ - len as usize);
@@ -191,14 +192,15 @@ impl<'a, W: Write, DWR: DataWriter<W>, const LINES: usize> DataRowCache<'a, W, D
             len += to_write as u8;
 
             if to_write as u8 != d.len {
-                self.push_front(addr + 16, &d.data[to_write..]);
+                let num_pushback_bytes = (d.data[to_write..].len() / 2) as u16;
+                self.push_front(d.addr + num_pushback_bytes, &d.data[to_write..]);
             }
         }
 
         /* Row address correction should not be applied here since this was an aligned
          * data row that was just missing some data
          */
-        self.data_writer.write(writer, addr_offset + addr as i64, &buf[..])?;
+        self.data_writer.write(writer, addr_offset + print_addr as i64, &buf[..])?;
 
         Ok(self.available())
     }
