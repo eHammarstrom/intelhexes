@@ -464,6 +464,11 @@ mod tests {
     }
 
     #[test]
+    fn it_equals_py_hex2dump_output_addrspace_gap_start() {
+        run_hex_test("addrspace-gap-start");
+    }
+
+    #[test]
     fn it_equals_py_hex2dump_output_addrspace_gap_mid() {
         run_hex_test("addrspace-gap-mid");
     }
@@ -476,6 +481,11 @@ mod tests {
     #[test]
     fn it_equals_py_hex2bin_output_nina() {
         run_bin_test("NINA-W15X-SW-4.0.0-006");
+    }
+
+    #[test]
+    fn it_equals_py_hex2bin_output_addrspace_gap_start() {
+        run_bin_test("addrspace-gap-start");
     }
 
     #[test]
