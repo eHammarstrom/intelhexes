@@ -85,8 +85,11 @@ impl<W: Write> DataWriter<W> for BinDataWriter {
             return Err(std::io::ErrorKind::Unsupported.into());
         }
 
-        for _ in 0..fill_bytes_to_write {
-            writer.write(&[ self.fill_byte ])?;
+        // Only fill between addresses, not from 0 up to start address
+        if self.prev_addr != 0 {
+            for _ in 0..fill_bytes_to_write {
+                writer.write(&[ self.fill_byte ])?;
+            }
         }
 
         for (i, bs) in buf.chunks(2).enumerate() {
