@@ -35,16 +35,8 @@ impl<const SIZE: usize> RingBuffer<SIZE> {
         RingBuffer::default()
     }
 
-    pub fn capacity(&self) -> usize {
-        SIZE
-    }
-
     pub fn len(&self) -> usize {
         self.bytes_avail
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.bytes_avail == 0
     }
 
     /// Returns bytes consumed or an I/O error
@@ -134,7 +126,7 @@ mod tests {
         rb.consume(ans.len())
             .expect("to be able to consume the peeked bytes");
 
-        assert!(!rb.is_empty());
+        assert!(rb.len() != 0);
         assert_eq!(rb.len(), 118);
 
         let bytes_read = rb.fill(&mut buf).expect("to be able to read the cursor");
