@@ -16,5 +16,9 @@ criterion = "0.3"
 name = "hex2dump"
 harness = false
 
+[[bench]]
+name = "hex2bin"
+harness = false
+
 [dependencies]
 structopt = "0.3"

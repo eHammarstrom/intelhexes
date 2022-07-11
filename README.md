@@ -25,19 +25,31 @@ Measured on a laptop with 16GB RAM and an i7-10750H,
 
 #### Criterion benchmarks
 
-Intelhexes throughput,
-
+hex2dump,
 ```
-NRF/hex2dump/97842      time:   [683.19 us 684.79 us 686.59 us]
-                        thrpt:  [135.90 MiB/s 136.26 MiB/s 136.58 MiB/s]
-    Found 7 outliers among 100 measurements (7.00%)
-      3 (3.00%) high mild
-      4 (4.00%) high severe
 
-NINA/hex2dump/3414628   time:   [23.991 ms 24.041 ms 24.096 ms]
-                        thrpt:  [135.15 MiB/s 135.45 MiB/s 135.74 MiB/s]
-    Found 4 outliers among 100 measurements (4.00%)
-      4 (4.00%) high mild
+NRF/hex2dump/97842      time:   [713.76 µs 715.13 µs 716.54 µs]
+                        thrpt:  [130.22 MiB/s 130.48 MiB/s 130.73 MiB/s]
+                        change:
+Found 7 outliers among 100 measurements (7.00%)
+5 (5.00%) high mild
+2 (2.00%) high severe
+
+NINA/hex2dump/3414628   time:   [23.997 ms 24.204 ms 24.412 ms]
+                        thrpt:  [133.39 MiB/s 134.54 MiB/s 135.70 MiB/s]
+```
+
+hex2bin,
+```
+NRF/hex2bin/97842       time:   [335.50 µs 336.29 µs 337.37 µs]
+                        thrpt:  [276.58 MiB/s 277.46 MiB/s 278.12 MiB/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+
+NINA/hex2bin/3414628    time:   [12.331 ms 12.492 ms 12.660 ms]
+                        thrpt:  [257.23 MiB/s 260.68 MiB/s 264.09 MiB/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
 ```
 
 ### Output versus python-intelhex
