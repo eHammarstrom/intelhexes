@@ -12,16 +12,16 @@ performing the operations faster.
 
 ### Performance
 
-Measured on a laptop with 16GB RAM and an i7-9750H,
+Measured on a laptop with 16GB RAM and an i7-10750H,
 
-#### Hyperfine benchmarks
+#### Hyperfine hex2dump benchmarks
 
 `hyperfine -w10 -m100 "PROGRAM hex-examples/NINA-W15X-SW-4.0.0-006.hex > /dev/null"`
 
 | PROGRAM           | intelhexes                                         | python-intelhex                                        |
 | ----------------- | ------------------------------------------------   | --------------------------------------------------     |
-| Time (mean ± σ)   | `32.7 ms ± 0.4 ms [User: 31.9 ms, System: 1.0 ms]` | `888.5 ms ± 29.8 ms [User: 861.4 ms, System: 26.8 ms]` |
-| Range (min … max) | `32.1 ms … 34.0 ms 88 runs`                        | `841.5 ms … 925.6 ms 10 runs`                          |
+| Time (mean ± σ)   | `27.5 ms ± 1.1 ms [User: 27.2 ms, System: 0.8 ms]` | `1.117 s ± 0.024 s [User: 1.071 s, System: 0.046 s]` |
+| Range (min … max) | `26.9 ms …  32.7 ms 103 runs`                        | `1.082 s …  1.205 s 100 runs` |
 
 #### Criterion benchmarks
 
